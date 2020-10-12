@@ -1,6 +1,7 @@
 /**
  * grab the cdRemaining object from the file BMM_Intake (line 75)
  * 
+ * id starts 10 - 27
  */
 // Scene_CustomMenu.prototype = Object.create
 

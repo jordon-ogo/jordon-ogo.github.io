@@ -118,6 +118,8 @@ BMM.PT = BMM.PT || {};
                     this.spawn(action[1], action[2], action[3]);
                 } else if (action[0] == "destroy") {
                     this.destroy();
+                } else if (action[0] == "radiant_lunge") {
+                    this.radiantLunge();
                 }
             }
         }
@@ -327,6 +329,12 @@ BMM.PT = BMM.PT || {};
         getNextActions() {
             this.x = this.event._x;
             this.y = this.event._y;
+            if (this.lungeCooldown > 0) {
+                this.lungeCooldown--;
+            }
+            if (this.swipeCooldown > 0) {
+                this.swipeCooldown--;
+            }
             if (this.stage == 0) {
                 this.getMoveStage1();
             } else if (this.stage == 1) {
@@ -335,21 +343,122 @@ BMM.PT = BMM.PT || {};
                 this.getMoveStage3();
             }
         }
+        getNextMove() {
+            var direction = this.dirToPlayer();
+            var move = dirToMove(direction);
+            if (BMM.TRAN.level.isPassable(this.x + move[0], this.y + move[1])) {
+               this.nextActions.push(["move", move[0], move[1], direction]);
+            }
+        }
+        basicMeleeSequence() {
+            if (this.attackInd == 0) {
+                this.attackInd++;
+                var pos = dirToMove(this.attackDir);
+                this.attackDir = this.dirToPlayer();
+                this.nextActions.push(["face", this.attackDir]);
+                this.nextActions.push(["warn", this.x + pos[0], this.y + pos[1], "attack"]);
+            } else if (this.attackInd == 1) {
+                var pos = dirToMove(this.attackDir);
+                this.nextActions.push(["hit", this.x + pos[0], this.y + pos[1], this.atk, []]);
+                this.attackInd = 0;
+                this.state = 0;
+            }
+        }
+        lungeSequence() {
+            if (this.lungeInd == 0) {
+                this.lungeInd++;
+                this.lungeCooldown = 6;
+                var pos = dirToMove(this.attackDir);
+                this.attackDir = this.dirToPlayer();
+                this.nextActions.push(["face", this.attackDir]);
+                for (var i = 0; i < 4; i++) {
+                    this.nextActions.push(["warn", this.x + pos[0] * i, this.y + pos[1] * i, "attack"]);
+                }
+            } else if (this.lungeInd == 1) {
+                this.lungeInd++;
+                this.nextActions.push(["radiant_lunge"]);
+            } else if (this.lungeInd == 2) {
+                this.lungeInd = 0;
+                this.state = 0;
+            }
+        }
+        radiantLunge() {
+            var dx = this.attackDir[0];
+            var dy = this.attackDir[1];
+            for (var i = 0; i < 4; i++) {
+                if (BMM.TRAN.level.isPassable(this.x + dx, this.y + dy)) {
+                    this.move(dx, dy);
+                } else {
+                    if ($gamePlayer.x == this.x + dx && $gamePlayer.y == this.y + dy) {
+                        BMM.HYB.playerDamage(1);
+                    }
+                }
+            }
+        }
+        swipeSequence() {
+            var combos = [[-1,-1], [-1,0], [-1,1], [0,-1], [0,1], [1,-1], [1,0], [1,1]];
+            if (this.swipeInd == 0) {
+                this.swipeInd++;
+                this.swipeCooldown = 4;
+                this.attackDir = this.dirToPlayer();
+                this.nextActions.push(["face", this.attackDir]);
+                for (var c of combos) {
+                    this.nextActions.push(["warn", this.x + c[0], this.y + c[1], "attack"]);
+                }
+            } else if (this.swipeInd == 1) {
+                this.swipeInd++;
+                for (var c of combos) {
+                    this.nextActions.push(["hit", this.x + c[0], this.y + c[1], 1, []]);
+                }
+            } else if (this.swipeInd == 2) {
+                this.swipeInd = 0;
+                this.state = 0;
+            }
+        }
         getMoveStage1() {
-            if (this.distToPlayer[0] + this.distToPlayer[1] <= 1) {
+            var dist = this.distToPlayer();
+            if (dist[0] + dist[1] <= 1) {
                 this.state = 1;
             }
             if (this.state == 0) {
-                // move
-            } else {
-                // attack
+                this.getNextMove();
+            } else if (this.state == 1) {
+                this.basicMeleeSequence();
             }
         }
         getMoveStage2() {
-            // TODO
+            var dist = this.distToPlayer
+            if ((dist[0] + dist[1] >= 2) && this.lungeCooldown <= 0) {
+                this.state = 2;
+            } else if (dist[0] + dist[1] <= 1) {
+                this.state = 1;
+            }
+            if (this.state == 0) {
+                this.getNextMove();
+            } else if (this.state == 1) {
+                this.basicMeleeSequence();
+            } else if (this.state == 2) {
+                this.lungeSequence();
+            }
         }
         getMoveStage3() {
-            // TODO
+            var dist = this.distToPlayer
+            if ((dist[0] + dist[1] >= 2) && this.lungeCooldown <= 0) {
+                this.state = 2;
+            } else if ((dist[0] <= 1 && dist[1] <= 1) && this.swipeCooldown <= 0) {
+                this.state = 3;
+            } else if (dist[0] + dist[1] <= 1) {
+                this.state = 1;
+            }
+            if (this.state == 0) {
+                this.getNextMove();
+            } else if (this.state == 1) {
+                this.basicMeleeSequence();
+            } else if (this.state == 2) {
+                this.lungeSequence();
+            } else if (this.state == 3) {
+                this.swipeSequence();
+            }
         }
         damage(amount) {
             this.hp -= amount;
