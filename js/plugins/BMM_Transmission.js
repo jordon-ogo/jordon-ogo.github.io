@@ -26,6 +26,7 @@ BMM.TRAN = BMM.TRAN || {};
             this.width = $gameMap.width();
             this.height = $gameMap.height();
             this.map = new Array(this.height).fill(0).map(() => new Array(this.width).fill(0));
+            this.trapMap = new Array(this.height).fill(0).map(() => new Array(this.width).fill(0));
             this.eventMap = new Array(this.height).fill(0).map(() => new Array(this.width).fill(0));
             this.events = [];
         }
@@ -112,8 +113,12 @@ BMM.TRAN = BMM.TRAN || {};
             this.initEvents();
             this.eventMap = new Array(this.height).fill(0).map(() => new Array(this.width).fill(0));
             for (var e of this.events) {
-                if (!e._erased) {
-                    this.eventMap[e.y][e.x] = e;
+                if (!e.event._erased) {
+                    if (e.type == "trap") {
+                        this.trapMap[e.y][e.x] = e;
+                    } else {
+                        this.eventMap[e.y][e.x] = e;
+                    }
                 }
             }
         }
@@ -127,13 +132,13 @@ BMM.TRAN = BMM.TRAN || {};
                             comboMap[i][j] = "E";
                         } else if (evnote == "projectile") {
                             comboMap[i][j] = "P";
-                        } else if (evnote == "trap") {
-                            comboMap[i][j] = "T";
                         } else if (evnote == "boss") {
                             comboMap[i][j] = "!";
                         } else {
                             comboMap[i][j] = "?";
                         }
+                    } else if (this.trapMap[i][j] != 0) {
+                        comboMap[i][j] = "#";
                     } else {
                         if (this.map[i][j] == -1) {
                             comboMap[i][j] = "╬";
@@ -170,7 +175,7 @@ BMM.TRAN = BMM.TRAN || {};
             if (x >= 0 && y >= 0 && x < this.width && y < this.height) {
                 if (flying && this.map[y][x] <= 0) {
                     return true;
-                } else if (this.map[y][x] == 0) {
+                } else if (!flying && this.map[y][x] == 0) {
                     return true;
                 } else {
                     return false;
@@ -192,8 +197,8 @@ BMM.TRAN = BMM.TRAN || {};
         }
         isOpen(x, y) { // TODO: Improve this
             if (x >= 0 && y >= 0 && x < this.width && y < this.height) {
-                var e = this.eventMap[y][x];
-                if ((e != 0 && e.type != "warning") || ($gamePlayer.x == x && $gamePlayer.y == y)) {
+                var e = this.eventAt(x, y);
+                if ((e != null && e.type != "warning") || ($gamePlayer.x == x && $gamePlayer.y == y)) {
                     return false;
                 } else {
                     return true;
@@ -205,7 +210,6 @@ BMM.TRAN = BMM.TRAN || {};
     }
 
     BMM.TRAN.level = null;
-    BMM.TRAN.turnCount = 1;
 
     BMM.TRAN.initMap = function() {
         BMM.TRAN.level = new LevelMap();
@@ -221,14 +225,15 @@ BMM.TRAN = BMM.TRAN || {};
     }
 	
 	BMM.TRAN.advanceTurn = function() {
-        BMM.TRAN.turnCount += 1;
-        console.log(">> TURN " + BMM.TRAN.turnCount.toString());
-        BMM.IN.advanceAbilities();
         for (e of BMM.TRAN.level.events) {
 
-            console.log("Testing event: " + String(e.class));
+            //console.log("Testing event: " + String(e.class));
             if(e.class == "spiketrap"){//update given trap state
                 e.changeState();
+            }
+
+            if (e.class == "bomb"){
+                e.changeBombState()
             }
 
             if (e.event._erased) {

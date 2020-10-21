@@ -66,9 +66,15 @@ BMM.PT = BMM.PT || {};
             this.dir = event._direction;
             this.type = "generic";
             this.event._sequenced = true;
+            this.warningLoc = {};
         }
         advance() { return null; }
         destroy() {
+            var tileInterpreter = new Game_Interpreter();
+            for (var loc in this.warningLoc) {//any tiles the event may have displayed need to be removed
+                tileInterpreter.pluginCommand( 'REMOVETILE', this.warningLoc[loc]);
+                delete this.warningLoc[loc];
+            }
             this.event._erased = true;
             this.event._sequenced = false;
             this.event.refresh();
@@ -102,7 +108,7 @@ BMM.PT = BMM.PT || {};
                console.log("> " + this.name);
             }
             for (var action of this.nextActions) {
-                console.log("\t" + action);
+                console.log("\t" + action[0]);
                 if (action[0] == "move") {
                     this.move(action[1], action[2]);
                     this.face(action[3])
@@ -118,8 +124,12 @@ BMM.PT = BMM.PT || {};
                     this.spawn(action[1], action[2], action[3]);
                 } else if (action[0] == "destroy") {
                     this.destroy();
-                } else if (action[0] == "radiant_lunge") {
+                } else if (action[0] == "log") {
+                    console.log(action[1]);
+                } else if (action[0] == "radiant_dash") {
                     this.radiantLunge();
+                } else if (action[0] == "radiant_bomb") {
+                    this.radiantBomb();
                 }
             }
         }
@@ -136,11 +146,17 @@ BMM.PT = BMM.PT || {};
             this.dir = this.event._direction;
         }
         warn(xpos, ypos, warntype){
-            this.spawn(xpos, ypos, 4); //TEMP
+            console.log("WARNING ENEMY ATTACK");
+            //this.spawn(xpos, ypos, 4); //TEMP
+            var tileInterpreter = new Game_Interpreter();
             if (warntype == "move") {
                 // TODO
             } else if (warntype == "attack") {
                 // TODO
+                tileInterpreter.pluginCommand( 'DISPLAYBASETILE', [ '2386', '215', xpos, ypos]);//display enemy attacking on tile
+                console.log("HASHMAP Before add: " + String(Object.keys(this.warningLoc)));
+                this.warningLoc[[xpos, ypos]] = [xpos, ypos];//add tile display loc to hasmap
+                console.log("HASHMAP after add: " + String(Object.keys(this.warningLoc)));
             } else if (warntype == "spawn") {
                 // TODO
             } else {
@@ -158,6 +174,12 @@ BMM.PT = BMM.PT || {};
                     hitTarget.damage(dmg);
                 }
             }
+            //regarlesss if hit connects or not, remove warning tile
+            var tileInterpreter = new Game_Interpreter();
+            tileInterpreter.pluginCommand( 'REMOVETILE', [xpos, ypos] );
+            console.log("HASHMAP Before remove: " + String(Object.keys(this.warningLoc)));
+            delete this.warningLoc[[xpos, ypos]];
+            console.log("HASHMAP after remove: " + String(Object.keys(this.warningLoc)));
         }
         fly(dx, dy, dist, damage, neutral) {
             for (var i = 0; i < dist; i++) {
@@ -203,21 +225,26 @@ BMM.PT = BMM.PT || {};
     }
 
     class Enemy extends Sequenced {
-        constructor(event, subtype, baseHP) {
+        constructor(event, subtype, baseHP, mods) {
             super(event);
             this.type = "enemy";
             this.class = subtype;
             this.baseHP = baseHP;
             this.hp = baseHP;
             this.getNextActions();
+            this.flying = mods.includes("flying");
+            this.stationary = mods.includes("stationary");
+            this.passive = mods.includes("passive");
         }
         damage(amount) {
             this.hp -= amount;
+            AudioManager.playSe({name: 'EnemyDamage1', pan: 0, pitch: 100, volume: 100});
             if (this.hp <= 0) {
                 this.death();
             }
         }
         death() {
+            AudioManager.playSe({name: 'EnemyDeath', pan: 0, pitch: 100, volume: 100});
             try {
                 $gameVariables.setValue(2, $gameVariables.value(2) - 1);
             } catch (e) {
@@ -318,29 +345,302 @@ BMM.PT = BMM.PT || {};
             this.stage = 0;
             this.baseHP = [3, 4, 4];
             this.hp = this.baseHP[0];
-            this.state = 0; // 0 = move, 1 = std attack, 2 = lunge, 3 = swipe
+            this.state = 0;
+            this.distance = 0;
             this.attackDir = 0;
-            this.attackInd = 0;
+
+            this.isAttack = false;
+            this.attackState = 0;
+            this.atk = 1;
+
+            this.isLunge = false;
+            this.lungeState = 0;
             this.lungeCooldown = 0;
-            this.lungeInd = 0;
-            this.swipeCooldown = 0;
-            this.swipeInd = 0;
+            this.lungeMaxCooldown = 10;
+            
+            this.isBomb = false;
+            this.bombState = 0;
+            this.bombCooldown = 0;
+            this.bombMaxCooldown = 10;
+            this.potentialBombLocations = [];
+            this.bossBombLocations = [];
+
+            this.bossDashDisplayLoc = [];
+            this.dashDirection = "up";
         }
         getNextActions() {
+            if ($gameSelfSwitches.value([$gameMap._mapId, this.id, "B"]) == true) this.destroy();
             this.x = this.event._x;
             this.y = this.event._y;
-            if (this.lungeCooldown > 0) {
-                this.lungeCooldown--;
+            this.distance = this.distToPlayer();
+            if (this.lungeCooldown > 0) this.lungeCooldown--;
+            if (this.bombCooldown > 0) this.bombCooldown--;
+            // NOTE boss sequence is temporary (for testing)
+            if (this.stage >= 2 && this.lungeCooldown <= 0) {
+                // DASH ATTACK
+                this.lungeSequence();
+            } else if (this.stage >= 1 && this.bombCooldown <= 0) {
+                // BOMB ATTACK
+                this.bombSequence();
+            } else if (this.stage >= 0 && this.distance[0] + this.distance[1] <= 2) {
+                // BASIC ATTACK
+                this.standardAttack();
+            } else {
+                this.getNextMove();
             }
-            if (this.swipeCooldown > 0) {
-                this.swipeCooldown--;
+        }
+        bombSequence() {
+            if (this.bombState == 0) {
+                // TODO: WARN FOR BOMBS (JORDON)
+                this.findPotentialBombLoc();
+                this.drawBombDropLocations();
+                this.nextActions.push(["log", ">>>>>>>>>>>>>>>>> WARN RADIANT BOMB"])
+                this.isBomb = true;
+                this.bombState++;
+            } else {
+                this.nextActions.push(["radiant_bomb"]);
+                this.bombState = 0;
+                this.bombCooldown = this.bombMaxCooldown;
+                this.isBomb = false;
             }
-            if (this.stage == 0) {
-                this.getMoveStage1();
-            } else if (this.stage == 1) {
-                this.getMoveStage2();
-            } else if (this.stage == 2) {
-                this.getMoveStage3();
+        }
+        drawBombDropLocations() {
+            var tileInterpreter = new Game_Interpreter();
+            console.log("DRAWING ready2");
+            for(var loc of this.bossBombLocations){
+                console.log("DRAWING: " + String(loc[0]) + ":" + String(loc[1]));
+                tileInterpreter.pluginCommand( 'DISPLAYBASETILE', [ '2386', '215', loc[0], loc[1] ]);
+            }
+        }
+        findPotentialBombLoc() {
+            var playerX = $gamePlayer.x;
+            var playerY = $gamePlayer.y;
+            var radius = 2;
+
+            var bottomLeftX = playerX;
+            var bottomLeftY = playerY;
+
+            //console.log("Player pos now is: " + String(bottomLeftX) + ":" + String(bottomLeftY));
+
+            for(var i = 0; i < radius; i++){
+                if(bottomLeftX < 0){//going off the map now
+                    break;
+                }
+                bottomLeftX--;
+            }
+            for(var i = 0; i < radius; i++){
+                if(bottomLeftY >= BMM.TRAN.level.height){//going off the map now
+                    break;
+                }
+                bottomLeftY++;
+            }
+
+            //console.log("BTMLEFT: " + String(bottomLeftX) + ":" + String(bottomLeftY));
+
+            for(var posX = bottomLeftX; posX < bottomLeftX + (radius * 2) + 1; posX++){
+                for(var posY = bottomLeftY; posY > bottomLeftY - (radius * 2) - 1; posY--){
+                    //console.log("checking pos: " + String(posX) + ":" + String(posY));
+
+                    if (posX < 0 || posY < 0 || posX >= BMM.TRAN.level.width || posY >= BMM.TRAN.level.height
+                        || !BMM.TRAN.level.isMapPassable(posX, posY, true)) {//trying to drop bomb on a place you cannot. Skip location
+                        //console.log("#1 CANNOT DO: " + String(posX) + ":" + String(posY));
+                        continue;
+                    }
+
+                    if (BMM.TRAN.level.isMapPassable(posX, posY)){//no wall or end of map here
+                        var landingZoneEvent = BMM.TRAN.level.eventAt(posX, posY);
+                        //console.log("#2 CAN DO: " + String(posX) + ":" + String(posY));
+                        if (landingZoneEvent == null){//no event here. Maybe can drop bomb here
+                            //console.log("#3 CAN DO: " + String(posX) + ":" + String(posY));
+                            if(posX == playerX && posY == playerY){//player is here. Skip
+                                continue;
+                            } else {//player is not here. Do not skip
+                                //console.log("#4 CAN DO: " + String(posX) + ":" + String(posY));
+                                this.potentialBombLocations.push([posX, posY]);
+                            }
+                        } 
+                    }
+
+                }
+            }//end of big for loop
+            var numOfBombsToSpawn = 3;
+            var numOfBombsSpawned = 0;
+            var randomPos = 0;
+            while(numOfBombsSpawned <  numOfBombsToSpawn) {
+                randomPos = Math.floor(Math.random() * this.potentialBombLocations.length);
+                if (this.potentialBombLocations[randomPos] in this.bossBombLocations){
+                    continue;
+                } else {
+                    numOfBombsSpawned++;
+                    this.bossBombLocations.push(this.potentialBombLocations[randomPos]);
+                }
+            }
+        }
+        radiantBomb() {
+            // TODO: EXECUTE BOMB ATTACK (JORDON)
+            console.log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  RADIANT BOMB")
+            this.removeBombDropDisplays();
+            for (var loc of this.bossBombLocations) {
+                Galv.SPAWN.overlap = 'all';//Needs to be all to spawn bomb on player
+                Galv.SPAWN.event(5, loc[0], loc[1]);
+                Galv.SPAWN.overlap = 'none';//set back to default to prevent unwanted spawns
+            }
+            this.potentialBombLocations = [];//reset it
+            this.bossBombLocations = [];
+        }
+        removeBombDropDisplays() {
+            var tileInterpreter = new Game_Interpreter();
+            for (var loc of this.potentialBombLocations){
+                tileInterpreter.pluginCommand( 'REMOVETILE', [ loc[0], loc[1] ] );//removes all dash tiles
+            }
+        }
+        lungeSequence() {
+            if (this.lungeState == 0) {
+                // TODO: WARN FOR DASH (JORDON)
+                console.log("Boss Dir: " + String(this.event._direction));
+                if(this.event._direction == 2){
+                    this.dashDirection = "down";
+                } else if(this.event._direction == 4){
+                    this.dashDirection = "left";
+                }else if(this.event._direction == 6){
+                    this.dashDirection = "right";
+                } else {//it is 8
+                    this.dashDirection = "up";
+                }
+                this.bossDashDisplayLoc = this.calcBossDashLoc(this.dashDirection);
+                var tileInterpreter = new Game_Interpreter();
+                tileInterpreter.pluginCommand( 'DISPLAYBASETILE', [ '2386', '215', this.bossDashDisplayLoc[0], this.bossDashDisplayLoc[1] ]);
+                
+                this.nextActions.push(["log", ">>>>>>>>>>>>>>>>> WARN RADIANT DASH"])
+                this.isLunge = true;
+                this.lungeState++;
+            } else {
+                this.nextActions.push(["radiant_dash"]);
+                this.lungeState = 0;
+                this.lungeCooldown = this.lungeMaxCooldown;
+                this.isLunge = false;
+            }
+        }
+        radiantLunge() {
+            // TODO: EXECUTE DASH (JORDON)
+            var tileInterpreter = new Game_Interpreter();
+            tileInterpreter.pluginCommand( 'REMOVETILE', [ this.bossDashDisplayLoc[0], this.bossDashDisplayLoc[1] ] );//removes all dash tiles
+            this.bossDashAndDamagePlayer();
+            console.log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  RADIANT DASH")
+        }
+        bossDashAndDamagePlayer() {
+
+            var playerX = $gamePlayer.x;
+            var playerY = $gamePlayer.y;
+            var difference;
+            console.log("direction is: " + String(this.dashDirection));
+
+            if (this.dashDirection == "up"){
+                difference = this.y - playerY;
+                if (playerX == this.x && difference > 0 && difference < this.bossDashDisplayLoc[2]){
+                    console.log("Player is in range. DAMAGE HIM");
+                    BMM.HYB.playerDamage(1);
+                }
+            }else if (this.dashDirection == "right"){
+                difference = playerX - this.x;
+                console.log("!!!!!!!!!!!!!!!!!: " + String(difference) + " " + String(this.bossDashDisplayLoc[2]) + " " + String(playerY)+ " " + String(this.y));
+                if(playerY == this.y && difference > 0 && difference < this.bossDashDisplayLoc[2]){
+                    console.log("Player is in range. DAMAGE HIM");
+                    BMM.HYB.playerDamage(1);
+                }
+            }else if (this.dashDirection == "down"){
+                difference = playerY - this.y;
+                if(playerX == this.x && difference > 0 && difference < this.bossDashDisplayLoc[2]){
+                    console.log("Player is in range. DAMAGE HIM");
+                    BMM.HYB.playerDamage(1);
+                }
+            }else {//diection is left
+                difference = this.x - playerX;
+                if(playerY == this.y && difference > 0 && difference < this.bossDashDisplayLoc[2]){
+                    console.log("Player is in range. DAMAGE HIM");
+                    BMM.HYB.playerDamage(1);
+                }
+            }
+
+            //BMM.TRAN.level.moveEvent(this.x, this.y, this.bossDashDisplayLoc[0], this.bossDashDisplayLoc[1]);
+            this.event.setPosition(this.bossDashDisplayLoc[0], this.bossDashDisplayLoc[1]);
+            this.x = this.event._x;
+            this.y = this.event._y;
+
+        }
+        calcBossDashLoc(direction){
+            var moveDist = 0;
+            var maxDist = 5;
+            var bossX = this.x;
+            var bossY = this.y;
+            var newX = bossX;
+            var newY = bossY;
+            var playerX = $gamePlayer.x;
+            var playerY = $gamePlayer.y;
+            this.bossDashDisplayLoc = [-1, -1]//set it to [-1, -1] in the event it cannot locate a place to dash to
+            for(var i = 1; i <= maxDist; i++){//check to see if you can move 5, 4, 3... spaces in direction
+
+                //get location player is trying to dash to
+                if (direction === "down") {
+                    newY = bossY + i;
+                }
+                else if (direction === "left") {
+                    newX = bossX - i;
+                }
+                else if (direction === "right") {
+                    newX = bossX + i;
+                }
+                else if (direction === "up") {
+                    newY = bossY - i;
+                }
+
+                if (newX < 0 || newY < 0 || newX >= BMM.TRAN.level.width || newY >= BMM.TRAN.level.height
+                    || !BMM.TRAN.level.isMapPassable(newX, newY, true)) {//trying to dash off map or hitting a wall. End loop, as you can't go further.
+                    break;
+                }
+
+                if (BMM.TRAN.level.isMapPassable(newX, newY)){//no wall or end of map here
+                    var landingZoneEvent = BMM.TRAN.level.eventAt(newX, newY);
+                    if(newX == playerX && newY == playerY){//cannot spawn on player
+                        continue;
+                    }
+                    if (landingZoneEvent == null){//no event here. Can go here
+                        moveDist = i;
+                    }
+                }
+            }
+
+            if (moveDist == 0){//no events are in the way, but something is (wall most likely). 
+                return [-1, -1, -1];
+            }
+
+            //return pos for dash in given direction
+            if (direction === "down") {
+                return [bossX, bossY + moveDist, moveDist];
+            }
+            else if (direction === "left") {
+                return [bossX - moveDist, bossY, moveDist];
+            }
+            else if (direction === "right") {
+                return [bossX + moveDist, bossY, moveDist];
+            }
+            else {//direction == up
+                return [bossX, bossY - moveDist, moveDist];
+            }
+        }
+        standardAttack() {
+            if (this.attackState == 0) {
+                this.attackDir = this.dirToPlayer();
+                var pos = dirToMove(this.attackDir);
+                this.nextActions.push(["face", this.attackDir]);
+                this.nextActions.push(["warn", this.x + pos[0], this.y + pos[1], "attack"]);
+                this.isAttack = true;
+                this.attackState++;
+            } else {
+                var pos = dirToMove(this.attackDir);
+                this.nextActions.push(["hit", this.x + pos[0], this.y + pos[1], this.atk, ["enemy"]]);
+                this.isAttack = false;
+                this.attackState = 0;
             }
         }
         getNextMove() {
@@ -350,118 +650,9 @@ BMM.PT = BMM.PT || {};
                this.nextActions.push(["move", move[0], move[1], direction]);
             }
         }
-        basicMeleeSequence() {
-            if (this.attackInd == 0) {
-                this.attackInd++;
-                var pos = dirToMove(this.attackDir);
-                this.attackDir = this.dirToPlayer();
-                this.nextActions.push(["face", this.attackDir]);
-                this.nextActions.push(["warn", this.x + pos[0], this.y + pos[1], "attack"]);
-            } else if (this.attackInd == 1) {
-                var pos = dirToMove(this.attackDir);
-                this.nextActions.push(["hit", this.x + pos[0], this.y + pos[1], this.atk, []]);
-                this.attackInd = 0;
-                this.state = 0;
-            }
-        }
-        lungeSequence() {
-            if (this.lungeInd == 0) {
-                this.lungeInd++;
-                this.lungeCooldown = 6;
-                var pos = dirToMove(this.attackDir);
-                this.attackDir = this.dirToPlayer();
-                this.nextActions.push(["face", this.attackDir]);
-                for (var i = 0; i < 4; i++) {
-                    this.nextActions.push(["warn", this.x + pos[0] * i, this.y + pos[1] * i, "attack"]);
-                }
-            } else if (this.lungeInd == 1) {
-                this.lungeInd++;
-                this.nextActions.push(["radiant_lunge"]);
-            } else if (this.lungeInd == 2) {
-                this.lungeInd = 0;
-                this.state = 0;
-            }
-        }
-        radiantLunge() {
-            var dx = this.attackDir[0];
-            var dy = this.attackDir[1];
-            for (var i = 0; i < 4; i++) {
-                if (BMM.TRAN.level.isPassable(this.x + dx, this.y + dy)) {
-                    this.move(dx, dy);
-                } else {
-                    if ($gamePlayer.x == this.x + dx && $gamePlayer.y == this.y + dy) {
-                        BMM.HYB.playerDamage(1);
-                    }
-                }
-            }
-        }
-        swipeSequence() {
-            var combos = [[-1,-1], [-1,0], [-1,1], [0,-1], [0,1], [1,-1], [1,0], [1,1]];
-            if (this.swipeInd == 0) {
-                this.swipeInd++;
-                this.swipeCooldown = 4;
-                this.attackDir = this.dirToPlayer();
-                this.nextActions.push(["face", this.attackDir]);
-                for (var c of combos) {
-                    this.nextActions.push(["warn", this.x + c[0], this.y + c[1], "attack"]);
-                }
-            } else if (this.swipeInd == 1) {
-                this.swipeInd++;
-                for (var c of combos) {
-                    this.nextActions.push(["hit", this.x + c[0], this.y + c[1], 1, []]);
-                }
-            } else if (this.swipeInd == 2) {
-                this.swipeInd = 0;
-                this.state = 0;
-            }
-        }
-        getMoveStage1() {
-            var dist = this.distToPlayer();
-            if (dist[0] + dist[1] <= 1) {
-                this.state = 1;
-            }
-            if (this.state == 0) {
-                this.getNextMove();
-            } else if (this.state == 1) {
-                this.basicMeleeSequence();
-            }
-        }
-        getMoveStage2() {
-            var dist = this.distToPlayer
-            if ((dist[0] + dist[1] >= 2) && this.lungeCooldown <= 0) {
-                this.state = 2;
-            } else if (dist[0] + dist[1] <= 1) {
-                this.state = 1;
-            }
-            if (this.state == 0) {
-                this.getNextMove();
-            } else if (this.state == 1) {
-                this.basicMeleeSequence();
-            } else if (this.state == 2) {
-                this.lungeSequence();
-            }
-        }
-        getMoveStage3() {
-            var dist = this.distToPlayer
-            if ((dist[0] + dist[1] >= 2) && this.lungeCooldown <= 0) {
-                this.state = 2;
-            } else if ((dist[0] <= 1 && dist[1] <= 1) && this.swipeCooldown <= 0) {
-                this.state = 3;
-            } else if (dist[0] + dist[1] <= 1) {
-                this.state = 1;
-            }
-            if (this.state == 0) {
-                this.getNextMove();
-            } else if (this.state == 1) {
-                this.basicMeleeSequence();
-            } else if (this.state == 2) {
-                this.lungeSequence();
-            } else if (this.state == 3) {
-                this.swipeSequence();
-            }
-        }
         damage(amount) {
             this.hp -= amount;
+            AudioManager.playSe({name: 'BossDamage1', pan: 0, pitch: 100, volume: 100});
             if (this.hp <= 0) {
                 this.stage += 1;
                 if (this.stage > 2) {
@@ -469,35 +660,24 @@ BMM.PT = BMM.PT || {};
                 } else {
                     this.hp = this.baseHP[this.stage];
                     if (this.stage == 1) {
+                        AudioManager.playSe({name: 'BossPhase', pan: 0, pitch: 100, volume: 100});
                         $gameMessage.setFaceImage("Evil", 4);
                         $gameMessage.setBackground(0);
                         $gameMessage.setPositionType(2);
-                        $gameMessage.add("I'm just getting started!");
+                        $gameMessage.add("The spell must survive!");
                     } else if (this.stage == 2) {
+                        AudioManager.playSe({name: 'BossPhase', pan: 0, pitch: 100, volume: 100});
                         $gameMessage.setFaceImage("Evil", 4);
                         $gameMessage.setBackground(0);
                         $gameMessage.setPositionType(2);
-                        $gameMessage.add("NO! You can't break the curse!");
+                        $gameMessage.add("An eternity of sacrifice and you \nwould destroy it all!");
                     }
                 }
             }
         }
         death() {
-            $gameMessage.setFaceImage("Evil", 4);
-            $gameMessage.setBackground(0);
-            $gameMessage.setPositionType(2);
-            $gameMessage.add("ACK! You've killed me!");
-            $gameMessage.newPage();
-            $gameMessage.add("...");
-            $gameMessage.newPage();
-            $gameMessage.add("Wait a minute... this is just a demo!");
-            $gameMessage.newPage();
-            $gameMessage.add("I guess the world is fine after all.");
-            $gameMessage.newPage();
-            $gameMessage.add("At least for now.");
-            $gameMessage.newPage();
-            $gameMessage.add("A WINRAR IS YOU");
-            this.destroy(); // TODO this is just a placeholder
+            $gameSelfSwitches.setValue([$gameMap._mapId, this.id, "A"], true);
+            AudioManager.playSe({name: 'BossDeath', pan: 0, pitch: 100, volume: 100});
             AudioManager.stopBgm();
         }
     }
@@ -515,6 +695,7 @@ BMM.PT = BMM.PT || {};
             this.damage = damage;
             this.fuse = fuse;
             this.radius = radius;
+            this.ping = [];
         }
         damageEnemys(){
             var enemysInBlastRadius = [];
@@ -536,9 +717,75 @@ BMM.PT = BMM.PT || {};
                 }
                 if (currentEvent.type == "enemy" || currentEvent.type == "boss"){//event is enemy. Must damage them
                     //damage enemy
-                    console.log("D-D-D-DAMAGE!");
-                    currentEvent.damage(1);
+                    if (this.neutral == true){//player bomb
+                        console.log("D-D-D-DAMAGE!");
+                        currentEvent.damage(1);
+                    }
                 }
+            }
+        }
+        changeBombState(){
+            if (this.fuse == -1){//bomb is not placed. Do nothing
+                return;
+            }
+            if (this.fuse == 0){//remove remaining tiles and destroy event
+                this.removeBlastRadiusDisplays();
+                this.destroy();
+            }else if (this.fuse == 1) {//detonate bomb
+                //todo: add events or sprites to show bomb detonated. Make sure they're above/below player level
+                //todo: damage enemy's in a 3x3 range
+                this.damageEnemys();
+                this.damagePlayer();
+                AudioManager.playSe({name: 'BombDetonate', pan: 0, pitch: 100, volume: 100});
+                this.fuse--;
+                this.removeBlastRadiusDisplays();
+                this.showSmokeBlastRadius();
+                this.event.setImage('', 0);//remove image of bomb
+            } else {//Bomb has been here for 1 turn. Change state
+                // On the next tick it turns red and shows a warning over it’s threat range of 3x3 cells, centered around it’s position.
+                this.fuse--;
+                this.getBlastZoneLocations();
+                this.event.setImage('!Other1', 6);
+                AudioManager.playSe({name: 'BombReady', pan: 0, pitch: 100, volume: 100});
+                this.showBlastRadius();
+            }
+        }
+        damagePlayer(){
+            var playerX = $gamePlayer.x;
+            var playerY = $gamePlayer.y;
+            if (Math.abs(playerX - this.x) <= 1 && Math.abs(playerY - this.y) <= 1){//player is in range of bomb
+                BMM.HYB.playerDamage(1);
+            }
+        }
+        getBlastZoneLocations(){
+            console.log("GETTING");
+            var locations = [];
+            locations.push([this.x, this.y - 1]);
+            locations.push([this.x + 1, this.y - 1]);
+            locations.push([this.x + 1, this.y]);
+            locations.push([this.x + 1, this.y + 1]);
+            locations.push([this.x, this.y + 1]);
+            locations.push([this.x - 1, this.y + 1]);
+            locations.push([this.x - 1, this.y]);
+            locations.push([this.x - 1, this.y - 1]);
+            this.ping = locations;
+        }
+        showBlastRadius(){
+            for (var i = 0; i < 8; i++){
+                var tileInterpreter = new Game_Interpreter();
+                tileInterpreter.pluginCommand( 'DISPLAYBASETILE', [ '2386', '215', this.ping[i][0], this.ping[i][1] ]);
+            }
+        }
+        showSmokeBlastRadius(){
+            for (var i = 0; i < 8; i++){
+                var tileInterpreter = new Game_Interpreter();
+                tileInterpreter.pluginCommand( 'DISPLAYBASETILE', [ '3382', '215', this.ping[i][0], this.ping[i][1] ]);
+            }
+        }
+        removeBlastRadiusDisplays(){
+            for (var i = 0; i < 8; i++){
+                var tileInterpreter = new Game_Interpreter();
+                tileInterpreter.pluginCommand( 'REMOVETILE', [ this.ping[i][0], this.ping[i][1] ]);
             }
         }
     }
@@ -561,10 +808,10 @@ BMM.PT = BMM.PT || {};
         }
     }
 
-    BMM.PT.TRAP_Spike = class extends Trap { // TODO//////////////////////////////////////////////////////////////////////////////////////
+    BMM.PT.TRAP_Spike = class extends Trap { //
         constructor(event) {
             super(event, "spiketrap");
-            this.state = -1;//-1 is to account for first turn when loading. 0 is down. 1 is peaking. 2 is up and damaging
+            this.state = Math.floor(Math.random() * 7) - 1;//sets the state to a random position
         }
         changeState(){
             if (this.state == -1){
@@ -581,6 +828,13 @@ BMM.PT = BMM.PT || {};
                 if (playerX == this.x && playerY == this.y){
                     this.damagePlayer();
                     AudioManager.playSe({name: 'spikesound', pan: 0, pitch: 100, volume: 70});
+                } else {
+                    var target = BMM.TRAN.level.eventAt(this.x, this.y);
+                    if (target != null && (target.type == "enemy" || target.type == "boss")) {
+                        if (!target.flying) {
+                            //target.damage(1); // TEMP: Enemies immune to spikes for now
+                        }
+                    }
                 }
             } else if (this.state == 5) {//spike is up. Hide it
                 this.event.setImage('!Other1', 4);
@@ -683,7 +937,6 @@ BMM.PT = BMM.PT || {};
                 this.attackInd += 1;
                 var pos = dirToMove(this.attackDir);
                 this.nextActions.push(["hit", this.x + pos[0], this.y + pos[1], this.atk, ["boss", "enemy"]]);
-            } else if (this.attackInd == 2) {
                 this.attackInd = 0;
                 this.state = 0;
             }

@@ -21,44 +21,52 @@ BMM.HYB = BMM.HYB || {};
  
 (function() {
     var parameters = PluginManager.parameters("BMM_Hybrid");
-    
-    function testSpawn() {
-        Galv.SPAWN.event(1,4,4);
-    }
 
-    // I'm just putting player health stuff here for now...
     BMM.HYB.playerHP = 3;
+    BMM.HYB.playerMaxHP = 3;
 
     BMM.HYB.playerDamage = function(amt) {
         BMM.HYB.playerHP -= amt;
-        if (BMM.HYB.playerHP <= 0) {
-            SceneManager.goto(Scene_Gameover);
+        if (amt > 0) {
+            AudioManager.playSe({name: 'PlayerDamage', pan: 0, pitch: 100, volume: 100});
+            $gameScreen.startShake(10, 5, 5); // (power, speed, duration)
+            $gameScreen.startFlash([255, 0, 0, 150], 25); // ([R, G, B, A], duration) NOTE: RGBA = 0-255
         }
-        BMM.HYB.updateHP();
+        if (BMM.HYB.playerHP <= 0) {
+            AudioManager.playSe({name: 'PlayerDeath', pan: 0, pitch: 100, volume: 100});
+            //SceneManager.goto(Scene_Gameover); // TODO: Player death failsafe
+            if (DataManager.loadGame(2)) {
+                $gamePlayer.reserveTransfer($gameMap.mapId(), $gamePlayer.x, $gamePlayer.y);
+                $gamePlayer.requestMapReload();
+                SceneManager.goto(Scene_Map);
+            }
+            BMM.HYB.playerHP = BMM.HYB.playerMaxHP;
+        }
     }
 
     BMM.HYB.playerHeal = function(amt) {
         BMM.HYB.playerHP += amt;
-        if (BMM.HYB.playerHP > 3) {
-            BMM.HYB.playerHP = 3;
+        if (BMM.HYB.playerHP > BMM.HYB.playerMaxHP) {
+            BMM.HYB.playerHP = BMM.HYB.playerMaxHP;
         }
-        BMM.HYB.updateHP();
     }
 
-    BMM.HYB.updateHP = function() {
-        $gameVariables.setValue(1, BMM.HYB.playerHP);
-        console.log(BMM.HYB.playerHP);
+    BMM.HYB.advanceTurn = function() {
+        BMM.IN.advanceAbilities();
+        BMM.TRAN.advanceTurn();
+        BMM.TIME.reset();
+        console.log(">> TURN " + BMM.TIME.turnCount);
     }
 
     function sceneStart() { // Code runs when scene loads
-        //testSpawn();
         BMM.TRAN.initMap();
-        BMM.TIME.resetTimer();
-        BMM.TRAN.turnCount = 1;
-        if (BMM.HYB.playerHP <= 0) {
-            BMM.HYB.playerHP = 3;
+        BMM.TIME.turnCount = 0;
+        BMM.TIME.nextTurn = -1;
+        $gameSystem.onBeforeSave();
+        if (DataManager.saveGame(2)) {
+            StorageManager.cleanBackup(2);
         }
-        BMM.HYB.updateHP();
+        BMM.GLOBAL.interpreter.pluginCommand("MapZoom", ["set", 1.5, "duration", 30]);
     }
 
     function sceneUpdate() { // Code runs every frame update

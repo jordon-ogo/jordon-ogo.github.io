@@ -45,12 +45,6 @@ BMM.IN = BMM.IN || {};
             this.dir = direction;
             this.exhausted = false;
 		}
-		exhaust() {
-			this.exhausted = true;
-		}
-		renew() {
-			this.exhausted = false;
-		}
 	}
 	
 	class AbilityKey extends Key {
@@ -148,17 +142,17 @@ BMM.IN = BMM.IN || {};
 	}
 
 	BMM.IN.advanceAbilities = function() {
-		for (ab of abkeys) {
+		for (var ab of abkeys) {
 			ab.advanceCooldown();
 		}
 	}
 
 	function getMoveInput() {
-		for (key of mvkeys){
+		for (var key of mvkeys){
 			key.check();
         }
-        if (mvkeys.every((val, i, arr) => val.lock === false)) {
-            for (key of mvkeys){
+        if (mvkeys.every((val) => val.lock === false)) {
+            for (var key of mvkeys){
                 if (key.isHeld){
                     key.lock = true;
                     //console.log(key.val + " locked");
@@ -166,17 +160,17 @@ BMM.IN = BMM.IN || {};
                 }
             }
         } else {
-            for (key of mvkeys){
+            for (var key of mvkeys){
                 if (key.lock && !key.isHeld){
                     key.lock = false;
-                    key.renew();
+                    key.exhausted = false;
                 }
             }
         }
 	}
 
 	function getAbilityInput() {
-		for (ab of abkeys){
+		for (var ab of abkeys){
 			ab.check();
 			if (ab.isHeld && !ab.lock) {
 				ab.lock = true;
@@ -189,7 +183,7 @@ BMM.IN = BMM.IN || {};
 	}
 
     BMM.IN.getInput = function() {
-		if ($gameSwitches.value(1) == false) {
+		if (BMM.GLOBAL.disableInput == false) {
 			getAbilityInput();
 			getMoveInput();
         	handleInput();
@@ -199,15 +193,15 @@ BMM.IN = BMM.IN || {};
     // As long all enemy calculations can be handled in ~50ms this shouldn't require a speed limit
 	function handleInput() {
 		var willUseDash = abkeys[1].toggledOn;
-		for (move of mvkeys) {
+		for (var move of mvkeys) {
 			if (move.lock && !move.exhausted) {
 				if (move.val == "p") {
-					BMM.TIME.resetTimer();
-					move.exhaust();
+					BMM.HYB.advanceTurn();
+					move.exhausted = true;
 					break;
 				}
-				if ($gamePlayer.canPass($gamePlayer.x, $gamePlayer.y, move.dir) || (willUseDash && BMM.TIME.checkDashPossible(move.val))) {//if player uses dash and CAN, they can move
-					for (action of abkeys) {
+				if (BMM.TRAN.level.isPassable($gamePlayer.x + move.x, $gamePlayer.y + move.y) || (willUseDash && BMM.TIME.checkDashPossible(move.val))) {//if player uses dash and CAN, they can move
+					for (var action of abkeys) {
 						if (action.toggledOn) {
 							action.useAbility(move.val);
 						}
@@ -215,17 +209,19 @@ BMM.IN = BMM.IN || {};
 					if (willUseDash === false) {//player is not dashing, so move normally
 						$gamePlayer.locate($gamePlayer.x + move.x, $gamePlayer.y + move.y);
 					}
-					BMM.TIME.resetTimer();
+					BMM.GLOBAL.interpreter.pluginCommand("CAM", [$gamePlayer.x.toString(), $gamePlayer.y.toString()]);
+					BMM.HYB.advanceTurn();
 				} else {
 					var target = BMM.TRAN.level.eventAt($gamePlayer.x + move.x, $gamePlayer.y + move.y);
 					if (target != null) {
 						if (target.type == "enemy" || target.type == "boss") {
 							target.damage(1);
+							BMM.HYB.advanceTurn();
 						}
 					}
 				}
 				$gamePlayer.setDirection(move.dir);
-				move.exhaust();
+				move.exhausted = true;
 			}
 		}
 	}

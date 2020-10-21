@@ -26,21 +26,11 @@ BMM.TIME = BMM.TIME || {};
     var allDirections = ["down", "left", "right", "up"];
     var enemysInDashPath = {down: [], "left": [], "right": [], "up": []};//all events in potential dash path
     var dashDisplayed = false;
+    var dashTileDisplaysLoc = [];
 
     var bombLocation = [-1, -1];
     var bombActive = false;
     var bombObject = null;
-
-    class Time {
-        constructor() {
-            this.d = new Date;
-            this.startTime = this.d.getTime();
-        }
-        getTime() { // returns time since start of program in ms
-            this.d = new Date;
-            return this.d.getTime() - this.startTime;
-        }
-    }
 
     //##########################BOMB START#####################################
 
@@ -65,12 +55,86 @@ BMM.TIME = BMM.TIME || {};
         Galv.SPAWN.event(3, playerX, playerY);
         Galv.SPAWN.overlap = 'none';//set back to default to prevent unwanted spawns
 
-        BMM.TRAN.level.scanEvents();
         bombObject = BMM.TRAN.level.eventAt(bombLocation[0], bombLocation[1]);
-        AudioManager.playSe({name: 'BombDroppedEdited', pan: 0, pitch: 100, volume: 100});
+        AudioManager.playSe({name: 'BombDropped', pan: 0, pitch: 100, volume: 100});
+        //BMM.TIME.bossBombs();
     }
 
-    function checkBombStatus() {
+    BMM.TIME.bossBombs = function() {
+        var playerX = $gamePlayer.x;
+        var playerY = $gamePlayer.y;
+        var radius = 2;
+        var potentialBombLocations = [];
+
+        var bottomLeftX = playerX;
+        var bottomLeftY = playerY;
+
+        //console.log("Player pos now is: " + String(bottomLeftX) + ":" + String(bottomLeftY));
+
+        for(var i = 0; i < radius; i++){
+            if(bottomLeftX < 0){//going off the map now
+                break;
+            }
+            bottomLeftX--;
+        }
+        for(var i = 0; i < radius; i++){
+            if(bottomLeftY >= BMM.TRAN.level.height){//going off the map now
+                break;
+            }
+            bottomLeftY++;
+        }
+
+        //console.log("BTMLEFT: " + String(bottomLeftX) + ":" + String(bottomLeftY));
+
+        for(var posX = bottomLeftX; posX < bottomLeftX + (radius * 2) + 1; posX++){
+            for(var posY = bottomLeftY; posY > bottomLeftY - (radius * 2) - 1; posY--){
+                //console.log("checking pos: " + String(posX) + ":" + String(posY));
+
+                if (posX < 0 || posY < 0 || posX >= BMM.TRAN.level.width || posY >= BMM.TRAN.level.height
+                    || !BMM.TRAN.level.isMapPassable(posX, posY, true)) {//trying to drop bomb on a place you cannot. Skip location
+                    //console.log("#1 CANNOT DO: " + String(posX) + ":" + String(posY));
+                    continue;
+                }
+
+                if (BMM.TRAN.level.isMapPassable(posX, posY)){//no wall or end of map here
+                    var landingZoneEvent = BMM.TRAN.level.eventAt(posX, posY);
+                    //console.log("#2 CAN DO: " + String(posX) + ":" + String(posY));
+                    if (landingZoneEvent == null){//no event here. Maybe can drop bomb here
+                        //console.log("#3 CAN DO: " + String(posX) + ":" + String(posY));
+                        if(posX == playerX && posY == playerY){//player is here. Skip
+                            continue;
+                        } else {//player is not here. Do not skip
+                            //console.log("#4 CAN DO: " + String(posX) + ":" + String(posY));
+                            potentialBombLocations.push([posX, posY]);
+                        }
+                    } 
+                }
+
+            }
+        }//end of big for loop
+        var numOfBombsToSpawn = 3;
+        var numOfBombsSpawned = 0;
+        var bossBombLocs = [];
+        var randomPos = 0;
+        while(numOfBombsSpawned <  numOfBombsToSpawn) {
+            randomPos = Math.floor(Math.random() * potentialBombLocations.length);
+            if (potentialBombLocations[randomPos] in bossBombLocs){
+                continue;
+            } else {
+                Galv.SPAWN.overlap = 'all';//Needs to be all to spawn bomb on player
+                Galv.SPAWN.event(3, potentialBombLocations[randomPos][0], potentialBombLocations[randomPos][1]);
+                Galv.SPAWN.overlap = 'none';//set back to default to prevent unwanted spawns
+                numOfBombsSpawned++;
+                bossBombLocs.push(potentialBombLocations[randomPos]);
+            }
+        }
+
+        //console.log("POS FOR BOSS BOMB DROP: " + String(potentialBombLocations));
+
+    }
+
+    /*function checkBombStatus() {//archived and outdated
+        console.log("BOMB in timingbelt active. THIS SHOULD NOT HAPPEN");
         //var bombEvent = BMM.TRAN.level.eventAt(bombLocation[0], bombLocation[1]);
 
         if (bombObject.fuse == -1){//bomb is not placed. Do nothing
@@ -94,35 +158,45 @@ BMM.TIME = BMM.TIME || {};
         } else {//bomb timer is at two
             bombObject.fuse--;
         }
-    }
+    }*/
 
     //##########################BOMB END#####################################    
 
 
     //##########################DASH START#####################################
     BMM.TIME.displayPotentialDashMoves = function() {
+        dashTileDisplaysLoc = [];//reset
 
         dashDisplayed = true;
         enemysInDashPath = {down: [], "left": [], "right": [], "up": []};//reset for new calculations
 
-        Galv.SPAWN.overlap = 'all';
+        //Galv.SPAWN.overlap = 'all';
+        var tileInterpreter = new Game_Interpreter();
 
         for(singleDirection of allDirections) {//display dash locations, if available
             potentialDashMove[singleDirection] = calcDashPos(singleDirection);
             if (potentialDashMove[singleDirection][0] != -1){//if it is -1, do not spawn display
-                Galv.SPAWN.event(2, potentialDashMove[singleDirection][0], potentialDashMove[singleDirection][1]);
+                //Galv.SPAWN.event(2, potentialDashMove[singleDirection][0], potentialDashMove[singleDirection][1]);
+                tileInterpreter.pluginCommand( 'DISPLAYBASETILE', [ '2386', '215', potentialDashMove[singleDirection][0], potentialDashMove[singleDirection][1] ] );
+                dashTileDisplaysLoc.push([potentialDashMove[singleDirection][0], potentialDashMove[singleDirection][1]])
             }
         }
 
-        Galv.SPAWN.overlap = 'none';//set back to default to prevent unwanted spawns
-        BMM.TRAN.level.scanEvents();
+        //Galv.SPAWN.overlap = 'none';//set back to default to prevent unwanted spawns
+        //BMM.TRAN.level.scanEvents();
 
     }
 
     BMM.TIME.removeDashDisplays = function(resetingDisplays = false){
 
         dashDisplayed = false;
-        var dashDisplayDown = null;
+        var tileInterpreter = new Game_Interpreter();
+
+        for (loc of dashTileDisplaysLoc){
+            tileInterpreter.pluginCommand( 'REMOVETILE', [ loc[0], loc[1] ] );//removes all dash tiles
+        }
+
+        /*var dashDisplayDown = null;//archived and outdated
         var dashDisplayLeft = null;
         var dashDisplayUp = null;
         var dashDisplayRight = null;
@@ -152,7 +226,7 @@ BMM.TIME = BMM.TIME || {};
         if (dashDisplayRight != null){
             dashDisplayRight.destroy();
         }
-        BMM.TRAN.level.scanEvents();
+        BMM.TRAN.level.scanEvents();*/
     }
 
     function resetDashDisplay() {
@@ -200,6 +274,8 @@ BMM.TIME = BMM.TIME || {};
                     if (landingZoneEvent.type == "enemy" || landingZoneEvent.type == "boss"){//event is enemy. Must damage them
                         enemysInDashPath[direction].push(landingZoneEvent); // TODO: This is just temporary
                         //moveDist = i;//disabled until destroy() bug is fixed
+                    } else if(landingZoneEvent.type == "trap"){
+                        moveDist = i;
                     }
                 }
             }
@@ -240,12 +316,12 @@ BMM.TIME = BMM.TIME || {};
             var playerX = $gamePlayer.x;
             var playerY = $gamePlayer.y;
             BMM.TIME.removeDashDisplays();
-            BMM.TRAN.level.scanEvents();
+            //BMM.TRAN.level.scanEvents();
             //checkNewPosForEnemy(direction);
             //BMM.TRAN.level.scanEvents();
             damageEnemysInWay(playerX, playerY, direction, potentialDashMove[direction][2]);//damages enemy's in way during dash
             $gamePlayer.locate(potentialDashMove[direction][0], potentialDashMove[direction][1]);//move player to new spot
-            AudioManager.playSe({name: 'WarpEdited', pan: 0, pitch: 100, volume: 100});
+            AudioManager.playSe({name: 'Warp', pan: 0, pitch: 100, volume: 100});
         }
     }
 
@@ -307,46 +383,66 @@ BMM.TIME = BMM.TIME || {};
     }
     //##############################DASH END##########################################
 
-    //##############################SPIKE START########################################
-
-
-
-    //##############################SPIKE END########################################
+    class Time {
+        constructor() {
+            this.d = new Date;
+            this.startTime = this.d.getTime();
+            this.offset = 0;
+            this.offsetDate = null;
+        }
+        deltaTime() {
+            if (this.offsetDate != null) {
+                this.offset += this.offsetDate.getTime() - this.d.getTime();
+                this.offsetDate = null;
+            }
+            this.d = new Date;
+            return this.d.getTime() - this.startTime - this.offset;
+        }
+        paused() {
+            this.offsetDate = new Date;
+            return this.d.getTime() - this.startTime - this.offset;
+        }
+    }
 
     BMM.TIME.t = new Time();
-    var nextTurn = -1;
-    var timePerTurn = 5000; // milliseconds
+    BMM.TIME.perTurn = 4000; // ms
+    BMM.TIME.turnCount = 1;
+    BMM.TIME.nextTurn = -1;
 
     BMM.TIME.time = function() {
-        return BMM.TIME.t.getTime();
+        if (BMM.GLOBAL.pauseTime) {
+            return BMM.TIME.t.paused();
+        } else {
+            return BMM.TIME.t.deltaTime();
+        }
     }
 
     BMM.TIME.turnTimer = function() {
         //console.log("Time: " + String(BMM.TIME.time()));
-        if (nextTurn === -1){
-            nextTurn = BMM.TIME.time() + timePerTurn;
+        if (BMM.TIME.nextTurn === -1){
+            BMM.TIME.reset();
         }
-        if (BMM.TIME.time() >= nextTurn) {
+        if (BMM.TIME.time() >= BMM.TIME.nextTurn) {
             console.log("TIME OUT");
-            BMM.TIME.resetTimer();
+            BMM.HYB.advanceTurn();
         }
     }
 
-    BMM.TIME.setTimePerTurn = function(newTime) {
-        timePerTurn = newTime;
+    BMM.TIME.remaining = function() {
+        return BMM.TIME.nextTurn - BMM.TIME.time();
     }
 
-    BMM.TIME.resetTimer = function() {
-        BMM.TRAN.advanceTurn();
+    BMM.TIME.reset = function() {
         //console.log("Var set to: " + String(bombActive));
-        if (bombActive){
+        /*if (bombActive){//archived and outdated
             checkBombStatus();
             console.log("Checked Bomb status");
-        }
+        }*/
         if (dashDisplayed){
             console.log("updated dash display");
-            //resetDashDisplay();
+            resetDashDisplay();
         }
-        nextTurn = BMM.TIME.time() + timePerTurn;
+        BMM.TIME.nextTurn = BMM.TIME.time() + BMM.TIME.perTurn;
+        BMM.TIME.turnCount++;
     }
 })();

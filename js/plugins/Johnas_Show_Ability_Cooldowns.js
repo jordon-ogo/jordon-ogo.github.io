@@ -1,18 +1,26 @@
+/*=============================================================================
+ * Johnas' Abilities Bar Plugin
+ * by Johnas Wong
+ * Date: October 4, 2020 
+ * Johnas_Show_Ability_Cooldowns.js
+ * 
+ * File dependencies:
+ *   - BMM_Intake.js
+ *=============================================================================*/
+/*:
+ * @plugindesc Shows the status of the player's abilities
+ * @author Johnas
+ */
+
 /**
  * grab the cdRemaining object from the file BMM_Intake (line 75)
  * 
- * id starts 10 - 27
+ * PICTURE IDS 10 - 13
  */
-// Scene_CustomMenu.prototype = Object.create
 
-
-// "$gameScreen.showPicture(pictureId, name, origin, x, y,
-//     scaleX, scaleY, opacity, blendMode)"
 ( function() 
 {  
     var parameters = PluginManager.parameters('Show_Abilities');
-    
-
 
 
 
@@ -20,8 +28,7 @@
 	_alias_scene_map_update_abilities = Scene_Map.prototype.update;
 	Scene_Map.prototype.update = function() 
 	{
-        $gameScreen.showPicture( 10, "BOMB", 1, 40, 50, 15, 10, 500, 0 );
-        $gameScreen.showPicture( 11, "DASH", 1, 40, 100, 15, 10, 500, 0 );
+
 
         var bombCooldownValue = BMM.IN.getBombCooldown();
         var dashCooldownValue = BMM.IN.getDashCooldown();
@@ -34,10 +41,12 @@
         switch( bombToggledValue )
         {
             case true:
-                $gameScreen.showPicture( 26, "TOGGLED", 1, 120, 50, 15, 10, 500, 0 );
+                $gameScreen.erasePicture( 10 );
+                $gameScreen.showPicture( 10, "bomb_selected", 1, 20, 50, 25, 25, 500, 0 );
                 break;
             case false:
-                $gameScreen.erasePicture( 26 );
+                $gameScreen.erasePicture( 10 );
+                $gameScreen.showPicture( 10, "bomb_unselected", 1, 20, 50, 25, 25, 500, 0 );
                 break;
             default:
                 console.log( "Shouldn't reach here" );
@@ -46,10 +55,12 @@
         switch( dashToggledValue )
         {
             case true:
-                $gameScreen.showPicture( 27, "TOGGLED", 1, 120, 100, 15, 10, 500, 0 );
+                $gameScreen.erasePicture( 11 );
+                $gameScreen.showPicture( 11, "dash_selected", 1, 20, 85, 25, 25, 500, 0 );
                 break;
             case false:
-                $gameScreen.erasePicture( 27 );
+                $gameScreen.erasePicture( 11 );
+                $gameScreen.showPicture( 11, "dash_unselected", 1, 20, 85, 25, 25, 500, 0 );
                 break;
             default:
                 console.log( "Shouldn't reach here" );
@@ -58,71 +69,68 @@
         switch( bombCooldownValue )
         {
             case 8:
-                $gameScreen.showPicture( 12, "BOMB_TICKS", 1, 10, 70, 5, 10, 500, 0 );
-                $gameScreen.showPicture( 13, "BOMB_TICKS", 1, 40, 70, 5, 10, 500, 0 );
-                $gameScreen.showPicture( 14, "BOMB_TICKS", 1, 70, 70, 5, 10, 500, 0 );
-                $gameScreen.showPicture( 15, "BOMB_TICKS", 1, 100, 70, 5, 10, 500, 0 );
-                $gameScreen.showPicture( 16, "BOMB_TICKS", 1, 130, 70, 5, 10, 500, 0 );
-                $gameScreen.showPicture( 17, "BOMB_TICKS", 1, 160, 70, 5, 10, 500, 0 );
-                $gameScreen.showPicture( 18, "BOMB_TICKS", 1, 190, 70, 5, 10, 500, 0 );
-                $gameScreen.showPicture( 19, "BOMB_TICKS", 1, 220, 70, 5, 10, 500, 0 );
+                $gameScreen.showPicture( 12, "bar_8seg_empty", 1, 105, 55, 25, 25, 500, 0 );
                 break;
             case 7:
-                $gameScreen.erasePicture( 19 );
+                $gameScreen.showPicture( 12, "bar_8seg_orange_1", 1, 105, 55, 25, 25, 500, 0 );
                 break;
             case 6:
-                $gameScreen.erasePicture( 18 );
+                $gameScreen.showPicture( 12, "bar_8seg_orange_2", 1, 105, 55, 25, 25, 500, 0 );
                 break;
             case 5:
-			    $gameScreen.erasePicture( 17 );
+                $gameScreen.showPicture( 12, "bar_8seg_orange_3", 1, 105, 55, 25, 25, 500, 0 );
                 break;
             case 4:
-                $gameScreen.erasePicture( 16 );
+                $gameScreen.showPicture( 12, "bar_8seg_orange_4", 1, 105, 55, 25, 25, 500, 0 );
                 break;
             case 3:
-                $gameScreen.erasePicture( 15 );
+                $gameScreen.showPicture( 12, "bar_8seg_orange_5", 1, 105, 55, 25, 25, 500, 0 );
                 break;
             case 2:
-                $gameScreen.erasePicture( 14 );
+                $gameScreen.showPicture( 12, "bar_8seg_orange_6", 1, 105, 55, 25, 25, 500, 0 );
                 break;
             case 1:
-                $gameScreen.erasePicture( 13 );
+                $gameScreen.showPicture( 12, "bar_8seg_orange_7", 1, 105, 55, 25, 25, 500, 0 );
                 break;     
             case 0:
-			    $gameScreen.erasePicture( 12 );
+                $gameScreen.showPicture( 12, "bar_8seg_orange_8", 1, 105, 55, 25, 25, 500, 0 );
                 break;
             default:
                 console.log( "Shouldn't reach this" );
         }
 
-
+        /**
+         * "$gameScreen.showPicture(pictureId, name, origin, x, y, scaleX, scaleY, opacity, blendMode)"
+         */
         switch( dashCooldownValue )
         {
             case 6:
-                $gameScreen.showPicture( 20, "DASH_TICKS", 1, 10, 130, 5, 10, 500, 0 );
-                $gameScreen.showPicture( 21, "DASH_TICKS", 1, 40, 130, 5, 10, 500, 0 );
-                $gameScreen.showPicture( 22, "DASH_TICKS", 1, 70, 130, 5, 10, 500, 0 );
-                $gameScreen.showPicture( 23, "DASH_TICKS", 1, 100, 130, 5, 10, 500, 0 );
-                $gameScreen.showPicture( 24, "DASH_TICKS", 1, 130, 130, 5, 10, 500, 0 );
-                $gameScreen.showPicture( 25, "DASH_TICKS", 1, 160, 130, 5, 10, 500, 0 );    
+                $gameScreen.showPicture( 13, "bar_6seg_empty", 1, 105, 85, 25, 25, 500, 0 );
+
                 break;
             case 5:
-                $gameScreen.erasePicture( 25 );
+                $gameScreen.showPicture( 13, "bar_6seg_blue_1", 1, 105, 85, 25, 25, 500, 0 );
+
                 break;
             case 4:
-                $gameScreen.erasePicture( 24 );
+                $gameScreen.showPicture( 13, "bar_6seg_blue_2", 1, 105, 85, 25, 25, 500, 0 );
+
                 break;
             case 3:
-                $gameScreen.erasePicture( 23 );
+                $gameScreen.showPicture( 13, "bar_6seg_blue_3", 1, 105, 85, 25, 25, 500, 0 );
+
                 break;
             case 2:
-			    $gameScreen.erasePicture( 22 );
+                $gameScreen.showPicture( 13, "bar_6seg_blue_4", 1, 105, 85, 25, 25, 500, 0 );
+
                 break;
             case 1:
-                $gameScreen.erasePicture( 21 );
-                break;
+                $gameScreen.showPicture( 13, "bar_6seg_blue_5", 1, 105, 85, 25, 25, 500, 0 );
+
+                break;     
             case 0:
-                $gameScreen.erasePicture( 20 );
+                $gameScreen.showPicture( 13, "bar_6seg_blue_6", 1, 105, 85, 25, 25, 500, 0 );
+
                 break;
             default:
                 console.log( "Shouldn't reach here either" );

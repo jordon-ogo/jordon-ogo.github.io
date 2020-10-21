@@ -1,20 +1,35 @@
-/**
- * abilities max pic id is 25
+/*=============================================================================
+ * Johnas' Show Boss Information Plugin
+ * by Johnas Wong
+ * Date: October 7, 2020 
+ * Johnas_Show_Boss_Info.js
  * 
- * this starts at id 28 - 36
+ * File dependencies:
+ *   - BMM_Powertrain.js
+ *=============================================================================*/
+/*:
+ * @plugindesc Shows the Boss information
+ * @author Johnas
  */
 
-
+/**
+ * grab the cdRemaining object from the file BMM_Intake (line 75)
+ * 
+ * PICTURE IDS 20 - 25
+ * 
+ * 
+ * I want to change the positioning of the hearts
+ * like the boss haed in the middle
+ * if 5 max hearts, they're around it in an upside down arc
+ * 
+ * if 4, 2 on each side
+ */
 // "$gameScreen.showPicture(pictureId, name, origin, x, y,
 //     scaleX, scaleY, opacity, blendMode)"
+
 ( function() 
 {  
     var parameters = PluginManager.parameters('Show_Boss_Info');
-    
-
-
-
-
 
 	_alias_scene_map_update_boss_info = Scene_Map.prototype.update;
 	Scene_Map.prototype.update = function() 
@@ -31,95 +46,177 @@
         switch( bossOnScreen )
         {
             case true:
-                console.log( "BOSS ON SCREEN ", bossMaxHP, " ", bossAttackStage, " ", bossCurrentHP );
-                $gameScreen.showPicture( 35, "BOSS", 1, 300, 50, 30, 20, 500, 0 );
-
                 /**
                  * Show stage
                  */
                 switch( bossAttackStage )
                 {
                     case 1:
-                        $gameScreen.showPicture( 36, "BOSS_STAGE1", 1, 280, 50, 10, 10, 500, 0 );
+                        $gameScreen.showPicture( 20, "BOSS_STAGE1", 1, 410, 29, 35, 35, 500, 0 );
                         break;
                     case 2:
-                        $gameScreen.erasePicture( 36 );
-                        $gameScreen.showPicture( 28, "BOSS_STAGE2", 1, 280, 50, 10, 10, 500, 0 );
+                        $gameScreen.showPicture( 20, "BOSS_STAGE2", 1, 410, 29, 35, 35, 500, 0 );
                         break;
                     case 3:
-                        $gameScreen.erasePicture( 36 );
-                        $gameScreen.erasePicture( 28 );
-                        $gameScreen.showPicture( 29, "BOSS_STAGE3", 1, 280, 50, 10, 10, 500, 0 );
+                        $gameScreen.showPicture( 20, "BOSS_STAGE3", 1, 410, 29, 35, 35, 500, 0 );
                         break;
                 }
-
-
-
-
-                switch( bossCurrentHP )
+                switch( bossMaxHP )
                 {
                     case 5:
-                        $gameScreen.showPicture( 30, "BOSS_HEARTS", 1, 330, 50, 5, 5, 500, 0 );
-                        $gameScreen.showPicture( 31, "BOSS_HEARTS", 1, 370, 50, 5, 5, 500, 0 );
-                        $gameScreen.showPicture( 32, "BOSS_HEARTS", 1, 410, 50, 5, 5, 500, 0 );
-                        $gameScreen.showPicture( 33, "BOSS_HEARTS", 1, 450, 50, 5, 5, 500, 0 );
-                        $gameScreen.showPicture( 34, "BOSS_HEARTS", 1, 490, 50, 5, 5, 500, 0 );
+                        switch( bossCurrentHP )
+                        {
+                            case 5:
+                                $gameScreen.showPicture( 21, "full_boss_heart", 1, 231, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 22, "full_boss_heart", 1, 370, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 23, "full_boss_heart", 1, 410, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 24, "full_boss_heart", 1, 450, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 25, "full_boss_heart", 1, 490, 75, 25, 25, 500, 0 );
+                                break;
+                            case 4:
+                                $gameScreen.showPicture( 21, "full_boss_heart", 1, 231, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 22, "full_boss_heart", 1, 370, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 23, "full_boss_heart", 1, 410, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 24, "full_boss_heart", 1, 450, 75, 25, 25, 500, 0 );
+
+                                $gameScreen.showPicture( 25, "empty_boss_heart", 1, 490, 75, 25, 25, 500, 0 );
+                                break;
+                            case 3:
+                                $gameScreen.showPicture( 21, "full_boss_heart", 1, 231, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 22, "full_boss_heart", 1, 370, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 23, "full_boss_heart", 1, 410, 75, 25, 25, 500, 0 );
+
+                                $gameScreen.showPicture( 24, "empty_boss_heart", 1, 450, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 25, "empty_boss_heart", 1, 490, 75, 25, 25, 500, 0 );
+                                break;
+                            case 2:
+                                $gameScreen.showPicture( 21, "full_boss_heart", 1, 231, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 22, "full_boss_heart", 1, 370, 75, 25, 25, 500, 0 );
+
+                                $gameScreen.showPicture( 23, "empty_boss_heart", 1, 410, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 24, "empty_boss_heart", 1, 450, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 25, "empty_boss_heart", 1, 490, 75, 25, 25, 500, 0 );
+                                break;
+                            case 1:
+                                $gameScreen.showPicture( 21, "full_boss_heart", 1, 231, 75, 25, 25, 500, 0 );
+
+                                $gameScreen.showPicture( 22, "empty_boss_heart", 1, 370, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 23, "empty_boss_heart", 1, 410, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 24, "empty_boss_heart", 1, 450, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 25, "empty_boss_heart", 1, 490, 75, 25, 25, 500, 0 );
+                                break;
+                            case 0:
+                                $gameScreen.showPicture( 21, "empty_boss_heart", 1, 231, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 22, "empty_boss_heart", 1, 370, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 23, "empty_boss_heart", 1, 410, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 24, "empty_boss_heart", 1, 450, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 25, "empty_boss_heart", 1, 490, 75, 25, 25, 500, 0 );
+                                break;
+                        }
                         break;
                     case 4:
-                        $gameScreen.showPicture( 30, "BOSS_HEARTS", 1, 330, 50, 5, 5, 500, 0 );
-                        $gameScreen.showPicture( 31, "BOSS_HEARTS", 1, 370, 50, 5, 5, 500, 0 );
-                        $gameScreen.showPicture( 32, "BOSS_HEARTS", 1, 410, 50, 5, 5, 500, 0 );
-                        $gameScreen.showPicture( 33, "BOSS_HEARTS", 1, 450, 50, 5, 5, 500, 0 );
-                        $gameScreen.erasePicture( 34 );
+                        switch( bossCurrentHP )
+                        {
+                            case 4:
+                                $gameScreen.showPicture( 21, "full_boss_heart", 1, 350, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 22, "full_boss_heart", 1, 390, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 23, "full_boss_heart", 1, 430, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 24, "full_boss_heart", 1, 470, 75, 25, 25, 500, 0 );
+                                break;
+                            case 3:
+                                $gameScreen.showPicture( 21, "full_boss_heart", 1, 350, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 22, "full_boss_heart", 1, 390, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 23, "full_boss_heart", 1, 430, 75, 25, 25, 500, 0 );
+
+                                $gameScreen.showPicture( 24, "empty_boss_heart", 1, 470, 75, 25, 25, 500, 0 );
+                                break;
+                            case 2:
+                                $gameScreen.showPicture( 21, "full_boss_heart", 1, 350, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 22, "full_boss_heart", 1, 390, 75, 25, 25, 500, 0 );
+
+                                $gameScreen.showPicture( 23, "empty_boss_heart", 1, 430, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 24, "empty_boss_heart", 1, 470, 75, 25, 25, 500, 0 );
+                                break;
+                            case 1:
+                                $gameScreen.showPicture( 21, "full_boss_heart", 1, 350, 75, 25, 25, 500, 0 );
+
+                                $gameScreen.showPicture( 22, "empty_boss_heart", 1, 390, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 23, "empty_boss_heart", 1, 430, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 24, "empty_boss_heart", 1, 470, 75, 25, 25, 500, 0 );
+                                break;
+                            case 0:
+                                $gameScreen.showPicture( 21, "empty_boss_heart", 1, 350, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 22, "empty_boss_heart", 1, 390, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 23, "empty_boss_heart", 1, 430, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 24, "empty_boss_heart", 1, 470, 75, 25, 25, 500, 0 );
+                                break;
+                        }
                         break;
                     case 3:
-                        $gameScreen.showPicture( 30, "BOSS_HEARTS", 1, 330, 50, 5, 5, 500, 0 );
-                        $gameScreen.showPicture( 31, "BOSS_HEARTS", 1, 370, 50, 5, 5, 500, 0 );
-                        $gameScreen.showPicture( 32, "BOSS_HEARTS", 1, 410, 50, 5, 5, 500, 0 );
-                        $gameScreen.erasePicture( 34 );
-                        $gameScreen.erasePicture( 33 );
+                        switch( bossCurrentHP )
+                        {
+                            case 3:
+                                $gameScreen.showPicture( 21, "full_boss_heart", 1, 370, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 22, "full_boss_heart", 1, 410, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 23, "full_boss_heart", 1, 450, 75, 25, 25, 500, 0 );
+                                break;
+                            case 2:
+                                $gameScreen.showPicture( 21, "full_boss_heart", 1, 370, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 22, "full_boss_heart", 1, 410, 75, 25, 25, 500, 0 );
+
+                                $gameScreen.showPicture( 23, "empty_boss_heart", 1, 450, 75, 25, 25, 500, 0 );
+                                break;
+                            case 1:
+                                $gameScreen.showPicture( 21, "full_boss_heart", 1, 370, 75, 25, 25, 500, 0 );
+
+                                $gameScreen.showPicture( 22, "empty_boss_heart", 1, 410, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 23, "empty_boss_heart", 1, 450, 75, 25, 25, 500, 0 );
+                                break;
+                            case 0:
+                                $gameScreen.showPicture( 21, "empty_boss_heart", 1, 370, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 22, "empty_boss_heart", 1, 410, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 23, "empty_boss_heart", 1, 450, 75, 25, 25, 500, 0 );
+                                break;
+                        }
                         break;
                     case 2:
-                        $gameScreen.showPicture( 30, "BOSS_HEARTS", 1, 330, 50, 5, 5, 500, 0 );
-                        $gameScreen.showPicture( 31, "BOSS_HEARTS", 1, 370, 50, 5, 5, 500, 0 );
-                        $gameScreen.erasePicture( 34 );
-                        $gameScreen.erasePicture( 33 );
-                        $gameScreen.erasePicture( 32 );
+                        switch( bossCurrentHP )
+                        {
+                            case 2:
+                                $gameScreen.showPicture( 21, "full_boss_heart", 1, 231, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 22, "full_boss_heart", 1, 370, 75, 25, 25, 500, 0 );
+                                break;
+                            case 1:
+                                $gameScreen.showPicture( 21, "full_boss_heart", 1, 231, 75, 25, 25, 500, 0 );
+
+                                $gameScreen.showPicture( 22, "empty_boss_heart", 1, 370, 75, 25, 25, 500, 0 );
+                                break;
+                            case 0:
+                                $gameScreen.showPicture( 21, "empty_boss_heart", 1, 231, 75, 25, 25, 500, 0 );
+                                $gameScreen.showPicture( 22, "empty_boss_heart", 1, 370, 75, 25, 25, 500, 0 );
+                                break;
+                        }
                         break;
                     case 1:
-                        $gameScreen.showPicture( 30, "BOSS_HEARTS", 1, 330, 50, 5, 5, 500, 0 );
-                        $gameScreen.erasePicture( 34 );
-                        $gameScreen.erasePicture( 33 );
-                        $gameScreen.erasePicture( 32 );
-                        $gameScreen.erasePicture( 31 );
-                        break;
-                    case 0:
-                        $gameScreen.erasePicture( 34 );
-                        $gameScreen.erasePicture( 33 );
-                        $gameScreen.erasePicture( 32 );
-                        $gameScreen.erasePicture( 31 );
-                        $gameScreen.erasePicture( 30 );
+                        switch( bossCurrentHP )
+                        {
+                            case 1:
+                                $gameScreen.showPicture( 21, "full_boss_heart", 1, 231, 75, 25, 25, 500, 0 );
+                                break;
+                            case 0:
+                                $gameScreen.showPicture( 21, "empty_boss_heart", 1, 231, 75, 25, 25, 500, 0 );
+                                break;
+                        }
                         break;
                 }
-
-
-
-
-
-
-
-
-
-
-
-
                 break;
             case false:
-                console.log( "BOSS NOT ON SCREEN" );
-                for( var i = 28; i < 36; i++ )
-                {
-                    $gameScreen.erasePicture( i );
-                }
+                $gameScreen.erasePicture( 20 );
+                $gameScreen.erasePicture( 21 );
+                $gameScreen.erasePicture( 22 );
+                $gameScreen.erasePicture( 23 );
+                $gameScreen.erasePicture( 24 );
+                $gameScreen.erasePicture( 25 );
                 break;
             default:
                 console.log( "Shouldn't reach here" );
