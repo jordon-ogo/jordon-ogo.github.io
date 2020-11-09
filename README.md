@@ -1,7 +1,7 @@
 ## Where Shadows Lie
 
 ### Developed by Nifty Gibbon 
-Team members: Navras Kamal, Johnas something, Cody something else, Rafa Granna?, Joel Goodson and Jordon Ogonoski
+Team members: Navras Kamal, Johnas Wong, Cody Balderston, Rafaella Graña, Joel Goodson and Jordon Ogonoski
 
 [Web Beta](/Where-Shadows-Lie/index.html), [Windows Beta download](Windows.zip), [Mac Beta download](Mac.zip), [Linux Beta download](Linux.zip) 
 
