@@ -3,7 +3,7 @@
 ### Developed by Nifty Gibbon 
 Team members: Navras Kamal, Johnas Wong, Cody Balderston, Rafaella Graña, Joel Goodson and Jordon Ogonoski
 
-[Web Beta](/Where-Shadows-Lie/index.html), [Windows Beta download](Windows.zip), [Mac Beta download](Mac.zip), [Linux Beta download](Linux.zip) 
+[Web Beta](/Where-Shadows-Lie/index.html) 
 
 [Beta Survey](https://docs.google.com/forms/d/e/1FAIpQLSekGYjYwfw56Igb0LpmNZ1XYzRhB4KtqJw63D2Yx3Yzf9Hwfg/viewform?usp=sf_link) for feedback.
 
