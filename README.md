@@ -1,11 +1,11 @@
 ## Where Shadows Lie
 
 ### Developed by Nifty Gibbon 
-Team members: Enter names here!
+Team members: Navras Kamal, Johnas something, Cody something else, Rafa Granna?, Joel Goodson and Jordon Ogonoski
 
 [Web Beta](/Where-Shadows-Lie/index.html), [Windows Beta download](Windows.zip), [Mac Beta download](Mac.zip), [Linux Beta download](Linux.zip) 
 
-[Beta Survey](ENTERLINKHERE) for feedback.
+[Beta Survey](https://docs.google.com/forms/d/e/1FAIpQLSekGYjYwfw56Igb0LpmNZ1XYzRhB4KtqJw63D2Yx3Yzf9Hwfg/viewform?usp=sf_link) for feedback.
 
 
 Controls:
@@ -14,7 +14,8 @@ Controls:
 * Right Mouse Click/Escape - Pause.
 * Number 1 - Toggle Bomb
 * Number 2 - Toggle Dash
-* Interact - E
+* E - Interact
+* Q - Skip turn
 
 
 Mechanics:
