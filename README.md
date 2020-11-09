@@ -1,19 +1,21 @@
-## Nifty Gibbon
+## Where Shadows Lie
 
-### Where Shadows Lie! 
-Made by: Enter names here!
+### Developed by Nifty Gibbon 
+Team members: Enter names here!
 
-[Web Beta](/Where-Shadows-Lie/index.html), [Windows Beta download](Beta-zip.zip), [Mac Beta download](Beta-zip.zip), [Linux Beta download](Beta-zip.zip) 
+[Web Beta](/Where-Shadows-Lie/index.html), [Windows Beta download](Windows.zip), [Mac Beta download](Mac.zip), [Linux Beta download](Linux.zip) 
 
-[Beta Survey](ENTERLINKHERE) to give feedback.
+[Beta Survey](ENTERLINKHERE) for feedback.
 
 
 Controls:
 
   WASD - Player Movement
   Right Mouse Click/Escape - Pause.
+  Number 1 - Bomb
+  Number 2 - Dash
+  Interact - E
 
 
 Mechanics:
-  Shooting a bottle distracts any earby guards for a bit.
-  Shooting a guard knocks him back a small bit and will chase the player if they shoot him.
+  Walking into enemies damages them
