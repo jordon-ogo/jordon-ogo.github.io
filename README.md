@@ -1,4 +1,4 @@
-## Where Shadows Lie
+![](WSLtitle.png)
 
 ### Developed by Nifty Gibbon 
 Team members: Navras Kamal, Johnas Wong, Cody Balderston, Rafaella Graña, Joel Goodson and Jordon Ogonoski
