@@ -1,7 +1,13 @@
 ![](WSLtitle.png)
 
 ### Developed by Nifty Gibbon 
-Team members: Navras Kamal, Johnas Wong, Cody Balderston, Rafaella Graña, Joel Goodson and Jordon Ogonoski
+Team members:
+Navras Kamal - Programmer, Lead Designer
+Johnas Wong - Programmer
+Jordon Ogonoski - Programmer, Sound Implementation
+Cody Balderston - Music Composition & Sound
+Rafaella Graña - Art
+Joel Goodson - Writing, Level Design
 
 [Web Tech Demo](/Where-Shadows-Lie-TechDemo/index.html)  
 
@@ -10,6 +16,8 @@ Team members: Navras Kamal, Johnas Wong, Cody Balderston, Rafaella Graña, Joel 
 [Web Beta](/Where-Shadows-Lie-Beta/index.html)  
   
 [Web Gold](/Where-Shadows-Lie-Gold/index.html)
+
+[Web Gold 2](/Where-Shadows-Lie-Gold-2/index.html)
 
 [Download Gold version for Windows, Linux, and Mac](https://drive.google.com/drive/folders/17Oth8vUswKhUiqdaWF_71yEVlUKgTN4k?usp=sharing)
 
