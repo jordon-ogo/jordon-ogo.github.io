@@ -17,15 +17,7 @@ Joel Goodson - Writing, Level Design
   
 [Web Gold](/Where-Shadows-Lie-Gold/index.html)
 
-[Web Gold 2](/Where-Shadows-Lie-Gold-2/index.html)
-
-[Web Gold 3](/Where-Shadows-Lie-Gold-3/index.html)
-
-[Web Gold 4](/Gold4/index.html)
-
-[Web Gold 5](/Gold5/index.html)
-
-[Web Gold 6](/Gold6/index.html)
+[Web Gold 2.2](/Gold2/index.html)
 
 [Download Gold version for Windows, Linux, and Mac](https://drive.google.com/drive/folders/17Oth8vUswKhUiqdaWF_71yEVlUKgTN4k?usp=sharing)
 
@@ -40,6 +32,7 @@ Controls:
 * Number 2 - Toggle Dash
 * E - Interact
 * Q - Skip turn
+* Esc - Pause
 
 
 Mechanics:
