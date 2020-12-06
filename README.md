@@ -15,9 +15,7 @@ Joel Goodson - Writing, Level Design
 
 [Web Beta](/Where-Shadows-Lie-Beta/index.html)  
   
-[Web Gold](/Where-Shadows-Lie-Gold/index.html)
-
-[Web Gold 2.3](/Gold2/index.html)
+[Web Gold](/Gold2/index.html)  
 
 [Download Gold version for Windows, Linux, and Mac](https://drive.google.com/drive/folders/17Oth8vUswKhUiqdaWF_71yEVlUKgTN4k?usp=sharing)
 
