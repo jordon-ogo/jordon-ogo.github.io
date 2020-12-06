@@ -25,6 +25,8 @@ Joel Goodson - Writing, Level Design
 
 [Web Gold 5](/Gold5/index.html)
 
+[Web Gold 6](/Gold6/index.html)
+
 [Download Gold version for Windows, Linux, and Mac](https://drive.google.com/drive/folders/17Oth8vUswKhUiqdaWF_71yEVlUKgTN4k?usp=sharing)
 
 [Beta Survey](https://docs.google.com/forms/d/e/1FAIpQLSekGYjYwfw56Igb0LpmNZ1XYzRhB4KtqJw63D2Yx3Yzf9Hwfg/viewform?usp=sf_link) for feedback.
