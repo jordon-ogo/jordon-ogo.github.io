@@ -22,7 +22,7 @@ BMM.HYB = BMM.HYB || {};
 (function() {
     var parameters = PluginManager.parameters("BMM_Hybrid");
 
-    BMM.HYB.nukeSaves() = function() {
+    BMM.HYB.nukeSaves = function() {
         for (var i = 0; i < 20; i++) {
             StorageManager.remove(i);
         }
